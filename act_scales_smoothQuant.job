@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=test_torch_int
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=00:40:00
+#SBATCH --output=act_scales.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+source activate ../torch-int/.env
+
+cd /gpfs/home3/scur1746/smoothquant
+export PYTHONPATH=/gpfs/home3/scur1746/smoothquant:$PYTHONPATH
+# pip install .
+# pip install tiktoken
+# pip install blobfile
+# pip install sentencepiece
+# pip install google
+# pip install sentencepiece protobuf transformers
+
+python examples/generate_act_scales.py \
+    --model-name "haoranxu/ALMA-7B" \
+    --output-path "activation_models/activation_ALMA.pth" \
+    --num-samples 512 \
+    --seq-len 2024 \
+    --dataset-path hf://datasets/haoranxu/WMT22-Test/cs-en/test-00000-of-00001-1a83a591805d9178.parquet

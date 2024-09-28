@@ -8,6 +8,7 @@ from collections import defaultdict
 from functools import partial
 import numpy as np
 from tqdm import tqdm
+import pandas as pd
 
 
 def get_act_scales(model, tokenizer, dataset_path, num_samples=512, seq_len=512):
@@ -36,12 +37,20 @@ def get_act_scales(model, tokenizer, dataset_path, num_samples=512, seq_len=512)
                 m.register_forward_hook(functools.partial(stat_input_hook, name=name))
             )
 
-    dataset = load_dataset("json", data_files=dataset_path, split="train")
-    dataset = dataset.shuffle(seed=42)
+    ds = pd.read_parquet(dataset_path)
+    lines = []
+
+    # Iterate over the dataset and extract the relevant information
+    for idx, example in enumerate(ds["cs-en"][:num_samples]):
+        czech_sentence = example['cs']  # Source sentence in Czech
+        #english_translation = example['en']  # Target sentence in English
+        
+        lines.append(czech_sentence)
+
 
     for i in tqdm(range(num_samples)):
         input_ids = tokenizer(
-            dataset[i]["text"], return_tensors="pt", max_length=seq_len, truncation=True
+            lines[i], return_tensors="pt", max_length=seq_len, truncation=True
         ).input_ids.to(device)
         model(input_ids)
 
