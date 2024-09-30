@@ -98,11 +98,19 @@ def get_static_decoder_layer_scales(
 
     print("Collecting activation scales...")
     pbar = tqdm(range(num_samples))
-    dataset = load_dataset("json", data_files=dataset_path, split="train")
-    dataset = dataset.shuffle(seed=42)
+    ds = pd.read_parquet(dataset_path)
+    lines = []
+
+    # Iterate over the dataset and extract the relevant information
+    for idx, example in enumerate(ds["cs-en"][:num_samples]):
+        czech_sentence = example['cs']  # Source sentence in Czech
+        #english_translation = example['en']  # Target sentence in English
+        
+        lines.append(czech_sentence)
+
     for i in pbar:
         input_ids = tokenizer(
-            dataset[i]["text"], return_tensors="pt", max_length=seq_len, truncation=True
+            lines[i], return_tensors="pt", max_length=seq_len, truncation=True
         ).input_ids.to(device)
         model(input_ids)
         mean_scale = np.mean([v["input"] for v in act_dict.values()])

@@ -5,7 +5,12 @@ import os
 from pathlib import Path
 
 from transformers.models.opt.modeling_opt import OPTForCausalLM
-from transformers import AutoTokenizer
+
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    LlamaTokenizer
+)
 
 from smoothquant.opt import Int8OPTForCausalLM
 from smoothquant.smooth import smooth_lm
@@ -29,13 +34,15 @@ if __name__ == '__main__':
         args.model_name, device_map="auto", torch_dtype=torch.float16)
     act_scales = torch.load(args.act_scales)
     smooth_lm(model, act_scales, 0.5)
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    #tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer = LlamaTokenizer.from_pretrained(model_name, model_max_length=512)
+    tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    if not os.path.exists(args.dataset_path):
-        print(f'Cannot find the dataset at {args.dataset_path}')
-        print('Please download the Pile dataset and put the validation set at the path')
-        print('You can download the validation dataset of the Pile at https://mystic.the-eye.eu/public/AI/pile/val.jsonl.zst')
-        raise FileNotFoundError
+    # if not os.path.exists(args.dataset_path):
+    #     print(f'Cannot find the dataset at {args.dataset_path}')
+    #     print('Please download the Pile dataset and put the validation set at the path')
+    #     print('You can download the validation dataset of the Pile at https://mystic.the-eye.eu/public/AI/pile/val.jsonl.zst')
+    #     raise FileNotFoundError
 
     decoder_layer_scales, raw_scales = get_static_decoder_layer_scales(model,
                                                                        tokenizer,
