@@ -30,12 +30,18 @@ if __name__ == '__main__':
                         help='location of the calibration dataset, we use the validation set of the Pile dataset')
     parser.add_argument('--export-FT', default=False, action="store_true")
     args = parser.parse_args()
-    model = OPTForCausalLM.from_pretrained(
+    
+    # model = OPTForCausalLM.from_pretrained(
+    #     args.model_name, device_map="auto", torch_dtype=torch.float16)
+
+    model = AutoModelForCausalLM.from_pretrained(
         args.model_name, device_map="auto", torch_dtype=torch.float16)
+
     act_scales = torch.load(args.act_scales)
-    smooth_lm(model, act_scales, 0.5)
+    # smooth_lm(model, act_scales, 0.5)
+    smooth_lm(model, act_scales, 0.85)
     #tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer = LlamaTokenizer.from_pretrained(model_name, model_max_length=512)
+    tokenizer = LlamaTokenizer.from_pretrained(args.model_name, model_max_length=512)
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
     # if not os.path.exists(args.dataset_path):
