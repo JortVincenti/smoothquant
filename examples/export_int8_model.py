@@ -38,7 +38,8 @@ if __name__ == '__main__':
         args.model_name, device_map="auto", torch_dtype=torch.float16)
 
     act_scales = torch.load(args.act_scales)
-    smooth_lm(model, act_scales, 0.5)
+    # smooth_lm(model, act_scales, 0.5)
+    smooth_lm(model, act_scales, 0.85)
     #tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer = LlamaTokenizer.from_pretrained(args.model_name, model_max_length=512)
     tokenizer.pad_token_id = tokenizer.eos_token_id
