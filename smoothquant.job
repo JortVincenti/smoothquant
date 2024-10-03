@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=Eval
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=02:00:00
+#SBATCH --output=eval_smoothquant.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+source activate ../torch-int/.env
+
+#pip install sacrebleu
+pip install rouge-score
+
+
+cd /gpfs/home3/scur1746/smoothquant
+export PYTHONPATH=/gpfs/home3/scur1746/smoothquant:$PYTHONPATH
+
+srun python eval_smoothQuant.py \
+    --model "int8_models/ALMA-7B-smoothquant.pt" \
+    --src "cs" \
+    --tgt "en" \
+    --dtype "float16" \
+    --beam 5 \
