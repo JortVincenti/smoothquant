@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from datasets import load_dataset
+from datasets import Dataset
 import functools
 from collections import defaultdict
 
@@ -9,7 +10,6 @@ from functools import partial
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
-
 
 def get_act_scales(model, tokenizer, dataset_path, num_samples=512, seq_len=512):
     model.eval()
@@ -38,21 +38,24 @@ def get_act_scales(model, tokenizer, dataset_path, num_samples=512, seq_len=512)
             )
 
     ds = pd.read_parquet(dataset_path)
+    dataset = Dataset.from_pandas(ds)
+    dataset = dataset.shuffle(seed=42)
     lines = []
 
     # Iterate over the dataset and extract the relevant information
-    for idx, example in enumerate(ds["cs-en"][:num_samples]):
+    for idx in range(num_samples):
+        example = dataset[idx]['cs-en']
         czech_sentence = example['cs']  # Source sentence in Czech
         #english_translation = example['en']  # Target sentence in English
         
         lines.append(czech_sentence)
-
-
+        
     for i in tqdm(range(num_samples)):
         input_ids = tokenizer(
             lines[i], return_tensors="pt", max_length=seq_len, truncation=True
         ).input_ids.to(device)
         model(input_ids)
+
 
     for h in hooks:
         h.remove()
@@ -98,19 +101,11 @@ def get_static_decoder_layer_scales(
 
     print("Collecting activation scales...")
     pbar = tqdm(range(num_samples))
-    ds = pd.read_parquet(dataset_path)
-    lines = []
-
-    # Iterate over the dataset and extract the relevant information
-    for idx, example in enumerate(ds["cs-en"][:num_samples]):
-        czech_sentence = example['cs']  # Source sentence in Czech
-        #english_translation = example['en']  # Target sentence in English
-        
-        lines.append(czech_sentence)
-
+    dataset = load_dataset("json", data_files=dataset_path, split="train")
+    dataset = dataset.shuffle(seed=42)
     for i in pbar:
         input_ids = tokenizer(
-            lines[i], return_tensors="pt", max_length=seq_len, truncation=True
+            dataset[i]["text"], return_tensors="pt", max_length=seq_len, truncation=True
         ).input_ids.to(device)
         model(input_ids)
         mean_scale = np.mean([v["input"] for v in act_dict.values()])
@@ -118,31 +113,29 @@ def get_static_decoder_layer_scales(
     for hook in hooks:
         hook.remove()
 
-    # print(act_dict)
     decoder_layer_scales = []
     for idx in range(model.config.num_hidden_layers):
         scale_dict = {}
-        # print(f"model.layers.{idx}.self_attn.q_proj")
         scale_dict["attn_input_scale"] = (
-            act_dict[f"model.layers.{idx}.self_attn.q_proj"]["input"] / 127
+            act_dict[f"model.decoder.layers.{idx}.self_attn.q_proj"]["input"] / 127
         )
         scale_dict["q_output_scale"] = (
-            act_dict[f"model.layers.{idx}.self_attn.q_proj"]["output"] / 127
+            act_dict[f"model.decoder.layers.{idx}.self_attn.q_proj"]["output"] / 127
         )
         scale_dict["k_output_scale"] = (
-            act_dict[f"model.layers.{idx}.self_attn.k_proj"]["output"] / 127
+            act_dict[f"model.decoder.layers.{idx}.self_attn.k_proj"]["output"] / 127
         )
         scale_dict["v_output_scale"] = (
-            act_dict[f"model.layers.{idx}.self_attn.v_proj"]["output"] / 127
+            act_dict[f"model.decoder.layers.{idx}.self_attn.v_proj"]["output"] / 127
         )
-        scale_dict["out_input_scale"] = ( # Not sure maybe change to o_input_scale
-            act_dict[f"model.layers.{idx}.self_attn.o_proj"]["input"] / 127
+        scale_dict["out_input_scale"] = (
+            act_dict[f"model.decoder.layers.{idx}.self_attn.out_proj"]["input"] / 127
         )
         scale_dict["fc1_input_scale"] = (
-            act_dict[f"model.layers.{idx}.mlp.up_proj"]["input"] / 127
+            act_dict[f"model.decoder.layers.{idx}.fc1"]["input"] / 127
         )
         scale_dict["fc2_input_scale"] = (
-            act_dict[f"model.layers.{idx}.mlp.down_proj"]["input"] / 127
+            act_dict[f"model.decoder.layers.{idx}.fc2"]["input"] / 127
         )
         decoder_layer_scales.append(scale_dict)
 

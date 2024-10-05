@@ -14,9 +14,10 @@ module load 2022
 module load Anaconda3/2022.05
 
 source activate ../torch-int/.env
+PROJECT_DIR="$PWD"
+cd $PROJECT_DIR
 
-cd /gpfs/home3/scur1746/smoothquant
-export PYTHONPATH=/gpfs/home3/scur1746/smoothquant:$PYTHONPATH
+# export PYTHONPATH=/gpfs/home3/scur1746/smoothquant:$PYTHONPATH
 
 # pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
 # pip install transformers==4.36.0 accelerate datasets zstandard
@@ -29,9 +30,9 @@ export PYTHONPATH=/gpfs/home3/scur1746/smoothquant:$PYTHONPATH
 # pip install protobuf
 
 python examples/export_int8_model.py \
-    --model-name "haoranxu/ALMA-7B" \
+    --model-name "ALMA-7B/" \
     --act-scales "activation_models/activation_ALMA.pth" \
     --num-samples 512 \
-    --seq-len 2024 \
+    --seq-len 512 \
     --dataset-path hf://datasets/haoranxu/WMT22-Test/cs-en/test-00000-of-00001-1a83a591805d9178.parquet \
     --export-FT

@@ -370,34 +370,9 @@ class Int8OPTDecoder(OPTPreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
-
-    # def _prepare_decoder_attention_mask(attention_mask, input_shape, past_key_values_length):
-    #     # create causal mask
-    #     # # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
-    #     _, seq_length = input_shape
-    #     tf.debugging.assert_equal(
-    #         seq_length + past_key_values_length,
-    #         shape_list(attention_mask)[1],
-    #         message="Attention mask shape should be (batch_size, seq_length + past_key_values_length)"
-    #         f" but is {shape_list(attention_mask)[1]} with input_ids shape {input_shape} and past length"
-    #         f" {past_key_values_length}.",
-    #     )
-
-    #     expanded_attn_mask = _expand_mask(attention_mask, tgt_len=input_shape[-1])
-    #     if seq_length > 1:
-    #         combined_attention_mask = (
-    #             _make_causal_mask(input_shape, past_key_values_length=past_key_values_length) + expanded_attn_mask
-    #         )
-    #     else:
-    #         combined_attention_mask = expanded_attn_mask
-
-    #     return combined_attention_mask
-
-
     get_input_embeddings = OPTDecoder.get_input_embeddings
     set_input_embeddings = OPTDecoder.set_input_embeddings
     _prepare_decoder_attention_mask = OPTDecoder._prepare_decoder_attention_mask
-    #_prepare_decoder_attention_mask = _prepare_decoder_attention_mask(attention_mask, input_shape, past_key_values_length)
     old_forward = OPTDecoder.forward
 
     @staticmethod

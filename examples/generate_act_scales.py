@@ -13,7 +13,7 @@ from smoothquant.calibration import get_act_scales
 
 def build_model_and_tokenizer(model_name):
     #tokenizer = AutoTokenizer.from_pretrained(model_name, model_max_length=512)
-    tokenizer = LlamaTokenizer.from_pretrained(model_name, model_max_length=512)
+    tokenizer = LlamaTokenizer.from_pretrained(model_name)
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
     kwargs = {"torch_dtype": torch.float16, "device_map": "sequential"}
