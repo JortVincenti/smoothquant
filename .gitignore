@@ -5,7 +5,8 @@ logs/
 *.pt
 slurm_log/
 .DS_Store
-
+activation_models/
+ALMA-7B
 *.pt
 
 # Byte-compiled / optimized / DLL files
