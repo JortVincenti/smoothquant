@@ -72,6 +72,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    initial_vram = torch.cuda.memory_allocated()
     # set data dtype
     dtype_map = {'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float32': torch.float32}
     dtype = dtype_map.get(args.dtype, torch.float)
@@ -102,8 +103,6 @@ def main():
     model.eval()
     tokenizer = LlamaTokenizer.from_pretrained(args.tokenizer)
     tokenizer.pad_token_id = tokenizer.eos_token_id
-
-    initial_vram = torch.cuda.memory_allocated()
 
     src = LANG_MAP[args.src]
     tgt = LANG_MAP[args.tgt]

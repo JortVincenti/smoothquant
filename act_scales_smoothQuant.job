@@ -28,6 +28,7 @@ cd $PROJECT_DIR
 # pip install google
 # pip install sentencepiece protobuf transformers
 # pip install transformers==4.36.0 accelerate datasets zstandard
+# python setup.py install
 
 # pip install -e .
 

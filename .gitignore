@@ -9,6 +9,7 @@ activation_models/
 ALMA-7B
 .vscode/
 *.pt
+!full_scale_activation_models/ALMA-7B/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
