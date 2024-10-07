@@ -40,7 +40,9 @@ def get_act_scales(model, tokenizer, mode='mode_1' ,num_samples=512, seq_len=512
     dataset_ = load_WMT22Testdataset(mode=mode, upper_bound_num_samples=num_samples)
     longest_sen_len = len(max(dataset_, key=len))
     max_length = max(seq_len, longest_sen_len)
+    
     for i in tqdm(range(len(dataset_))):
+        #prormpts are inside the dataset_
         input_ids = tokenizer(
             dataset_[i], return_tensors="pt", max_length=max_length, truncation=True
         ).input_ids.to(device)

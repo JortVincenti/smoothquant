@@ -9,7 +9,7 @@ def _return_calibration_dataset(dataset_pairs, num_samples):
             dataset = dataset.shuffle(seed=42)
             
 
-            source, _ = dataset.column_names[0].split('-') # e.g. source: cs target: en    
+            source, target = dataset.column_names[0].split('-') # e.g. source: cs target: en    
             lines_source = []
             # lines_target = []
             
@@ -17,8 +17,8 @@ def _return_calibration_dataset(dataset_pairs, num_samples):
                 sample = dataset[idx][dataset.column_names[0]]
                 source_sentence = sample[source] 
                 # target_sentence = sample[target]
-
-                lines_source.append(source_sentence)
+                prompt = f"Translate this from {source} to {target}:\n{source}: {source_sentence}\n{target}:"
+                lines_source.append(prompt)
                 # lines_target.append(target_sentence)
 
             _dataset.extend(lines_source)
@@ -38,7 +38,7 @@ def load_WMT22Testdataset(mode, upper_bound_num_samples=512):
     "hf://datasets/haoranxu/WMT22-Test/zh-en/test-00000-of-00001-a8c846c3e121c2f6.parquet"]
     
     if "mode_1" in mode:
-        num_samples = upper_bound_num_samples // len(dataset_pairs) + 1
+        num_samples = upper_bound_num_samples // 16
         _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
         
     elif "mode_2" in mode:
