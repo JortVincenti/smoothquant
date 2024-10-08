@@ -1,4 +1,4 @@
-unbabel-comet
+unbabel-comet==2.2.2
 --find-links https://download.pytorch.org/whl/cu113
 torch==1.12.1
 --find-links https://download.pytorch.org/whl/cu113

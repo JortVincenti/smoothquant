@@ -1,14 +1,18 @@
 import argparse
+import os
 import torch
-# from peft import PeftModel
-from transformers import AutoModelForCausalLM, LlamaTokenizer
-from tqdm import tqdm 
 import pandas as pd
 import sacrebleu
 from rouge_score import rouge_scorer
+
+from transformers import AutoModelForCausalLM, LlamaTokenizer, BitsAndBytesConfig
+from tqdm import tqdm 
+
 import numpy as np
 from smoothquant.smooth import smooth_lm
 from smoothquant.fake_quant import quantize_llama_like
+from comet import download_model, load_from_checkpoint
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -20,12 +24,18 @@ def get_parser():
     parser.add_argument('--dtype', required=True)
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--beam', type=int, required=True)
-    parser.add_argument('--gen_max_tokens', type=int, default=256)
+    parser.add_argument('--gen_max_tokens', type=int, default=512)
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for generation')
     parser.add_argument('--eval_samples', type=int, required=False)
-    parser.add_argument('--quant_type', type=str, default=None, help='Quantization type. Options are None, "naive", or "smooth". Defaults to None.')
+    parser.add_argument('--quant_type', type=str, default=None, help='Quantization type. Options are None, "naive","fake_smooth", or "smooth_8bit". Defaults to None.')
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="mode_2",
+        help="Controls the model type for act scales. Options: mode_1, mode_2, mode_3, mode_4, mode_5",
+    )
     parser.add_argument("--act-scales", type=str,
-                        default='activation_models/activation_ALMA.pth')
+                        default='full_scale_activation_models/ALMA-7B/')
     return parser
 
 LANG_MAP = {
@@ -77,27 +87,64 @@ def main():
     dtype_map = {'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float32': torch.float32}
     dtype = dtype_map.get(args.dtype, torch.float)
 
-    model = AutoModelForCausalLM.from_pretrained(args.model, 
-                                                 torch_dtype=dtype, 
-                                                 device_map="auto",
-                                                 offload_folder="./offload"
-                                                 )
-    print(model)
-    #model = PeftModel.from_pretrained(model, args.ckpt) # load when you have lora
+
+    if args.quant_type =="LLM_int8":
+        quant_config = BitsAndBytesConfig(load_in_4bit=True,
+                                              bnb_4bit_quant_type="nf4",
+                                              bnb_4bit_compute_dtype=getattr(torch, "float16"),
+                                              bnb_4bit_use_double_quant=True)
+        
+        model = AutoModelForCausalLM.from_pretrained(args.model, 
+                                            torch_dtype=dtype, 
+                                            device_map="auto",
+                                            offload_folder="./offload",
+                                            quantization_config=quant_config
+                                            )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(args.model, 
+                                                    torch_dtype=dtype, 
+                                                    device_map="auto",
+                                                    offload_folder="./offload",
+                                                    )
     
-    if args.quant_type is not None:
+    if args.quant_type is not None and not args.quant_type=="LLM_int8":
         print(f"Running with quantization type: {args.quant_type}")
-        if args.quant_type == 'smooth':
-            act_scales = torch.load(args.act_scales)
+        if args.quant_type == 'fake_smooth':
+            act_scales = torch.load(os.path.join(args.act_scales, f"{args.mode}.pth"))
             smooth_lm(model, act_scales, 0.85)
             model = quantize_llama_like(model)
         elif args.quant_type == 'naive':
             model = quantize_llama_like(model)
+        elif args.quant_type == 'smooth_8bit':
+            act_scales = torch.load(os.path.join(args.act_scales, f"{args.mode}.pth"))
+            smooth_lm(model, act_scales, 0.85)
+            
+            user = os.getenv('USER')
+            scratch_path = os.path.join(f"/scratch-shared/{user}/", args.act_scales)
+            os.makedirs(scratch_path, exist_ok=True)
+            smoothed_path = os.path.join(scratch_path, f"{args.mode}_smooth_8bit")
+            
+            model.save_pretrained(smoothed_path, from_pt=True)
+            
+            del model
+            torch.cuda.empty_cache()
+            
+            quant_config = BitsAndBytesConfig(load_in_4bit=True,
+                                              bnb_4bit_quant_type="nf4",
+                                              bnb_4bit_compute_dtype=getattr(torch, "float16"),
+                                              bnb_4bit_use_double_quant=True)
+            model = AutoModelForCausalLM.from_pretrained(smoothed_path, 
+                                                torch_dtype=dtype, 
+                                                device_map="auto",
+                                                offload_folder="./offload",
+                                                quantization_config=quant_config
+                                                )
+            
         else:
             raise ValueError(f"Invalid quantization type: {args.quant_type}")
     else:
-        print(f"Running with quantization type: {str(args.quant_type)}")
-    print(model)
+        print(f"Running with quantization type: {str(args.quant_type) if args.quant_type is None else args.quant_type}")
+    
     print_model_size(model)
 
     model.eval()
@@ -142,6 +189,8 @@ def main():
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
+    increment = 0
+    comet_score = []
     for batch in tqdm(dynamic_batching(tokenizer, lines, args.batch_size, args.gen_max_tokens), total=total_batches, desc="Processing Batches"):
         prompts = []
         for line in batch:
@@ -182,9 +231,21 @@ def main():
             translation = output[len(prompt):].strip()
             generated_translations.append(translation)
 
+            comet_score.append(
+                {"src": prompt,
+                 "mt": translation,
+                 'ref' : targets[increment]
+                 }
+            )
+            increment += 1
+
+    print("-----------------------------------------------------------------")
+    print_model_size(model)
+    
     model_average_vram = sum(total_vram_per_batch) / len(total_vram_per_batch)
     print(f"Average VRAM usage: {model_average_vram} MB with model")
 
+    print("-----------------------------------------------------------------")
     # average_vram = sum(vram_per_batch) / len(vram_per_batch)
     # print(f"Average VRAM usage: {average_vram} MB for a single batch witout model")
     
@@ -193,6 +254,7 @@ def main():
 
     del model
     torch.cuda.empty_cache()
+    
 
     print("*"*100)
     print("Evaluation Results:")
@@ -217,6 +279,16 @@ def main():
     print(f"Average ROUGE-1 F1 score: {average_rouge1}")
     print(f"Average ROUGE-2 F1 score: {average_rouge2}")
     print(f"Average ROUGE-L F1 score: {average_rougeL}")
+    
+    
+    model_path = download_model("Unbabel/wmt22-comet-da")
+    model_scorer = load_from_checkpoint(model_path)
+
+    comet = model_scorer.predict(comet_score, batch_size=args.batch_size, gpus=1)
+    print (f"Comet score:{comet}")
+    average_comet_score = sum(comet['scores']) / len(comet['scores'])
+    print(f"Average COMET score: {average_comet_score}")
+    
 
     print("*"*100)
 

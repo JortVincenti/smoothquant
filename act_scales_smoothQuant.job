@@ -30,6 +30,9 @@ cd $PROJECT_DIR
 # pip install transformers==4.36.0 accelerate datasets zstandard
 # python setup.py install
 
+# pip install sacrebleu
+# pip install rouge-score
+
 # pip install -e .
 
 python examples/generate_act_scales.py \
