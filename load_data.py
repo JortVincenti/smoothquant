@@ -38,24 +38,18 @@ def load_WMT22Testdataset(mode, upper_bound_num_samples=512):
     "hf://datasets/haoranxu/WMT22-Test/zh-en/test-00000-of-00001-a8c846c3e121c2f6.parquet"]
     
     if "mode_1" in mode:
-        num_samples = upper_bound_num_samples // 16
-        _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
-        
-    elif "mode_2" in mode:
         num_samples = upper_bound_num_samples
-        _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
-
-    elif "mode_3" in mode:
+    elif "mode_2" in mode:
         num_samples = upper_bound_num_samples//2
-        _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
-    elif "mode_4" in mode:
+    elif "mode_3" in mode:
         num_samples = upper_bound_num_samples//4
-        _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
-    elif "mode_5" in mode:
+    elif "mode_4" in mode:
         num_samples = upper_bound_num_samples//8
-        _dataset = _return_calibration_dataset(dataset_pairs, num_samples)
+    elif "mode_5" in mode:
+        num_samples = upper_bound_num_samples//16
     else:
         raise ValueError(f"Mode: {mode} not found")
-    return _dataset
+    
+    return _return_calibration_dataset(dataset_pairs, num_samples)
 if __name__ == "__main__":
     datset = load_WMT22Testdataset("mode_3", 512)

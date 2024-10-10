@@ -11,14 +11,15 @@
 
 set -e 
 
-module purge
-module load 2022
-module load Anaconda3/2022.05
-
-source activate ../torch-int/.env
-
 PROJECT_DIR="$PWD"
 cd $PROJECT_DIR
+
+module purge
+module load 2022
+module load Mamba/4.14.0-0
+module load CUDA/11.8.0
+
+source activate .env/
 
 # export PYTHONPATH=${PROJECT_DIR}:$PYTHONPATH
 # pip install .
@@ -29,11 +30,9 @@ cd $PROJECT_DIR
 # pip install sentencepiece protobuf transformers
 # pip install transformers==4.36.0 accelerate datasets zstandard
 # python setup.py install
-
-# pip install sacrebleu
-# pip install rouge-score
-
 # pip install -e .
+
+export PYTHONPATH=${PROJECT_DIR}:$PYTHONPATH
 
 python examples/generate_act_scales.py \
     --model-name "ALMA-7B/" \

@@ -12,12 +12,17 @@
 # entire script fails if a single command fails
 set -e
 
+PROJECT_DIR="$PWD"
+cd $PROJECT_DIR
+
 module purge
 module load 2022
-module load Anaconda3/2022.05
+module load Mamba/4.14.0-0
+module load CUDA/11.8.0
 
-#activate the environment
-source activate ../torch-int/.env
+source activate .env/
+
+export PYTHONPATH=${PROJECT_DIR}:$PYTHONPATH
 
 mkdir -p ~/.config/code-server/
 

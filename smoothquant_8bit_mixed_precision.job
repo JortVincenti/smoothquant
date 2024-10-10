@@ -1,17 +1,23 @@
-#!/bin/bash
+#!/bin/bash 
 
 #SBATCH --partition=gpu_a100
 #SBATCH --gpus=1
 #SBATCH --gpus-per-node=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=00:40:00
-#SBATCH --output=%x-%j.out
+#SBATCH --time=01:10:00
+#SBATCH --output=mixed-precision-%x-%j.out
 
-set -e 
+set -e
 
 PROJECT_DIR="$PWD"
 cd $PROJECT_DIR
+
+# module purge
+# module load 2022
+# module load Anaconda3/2022.05
+
+# source activate ../torch-int/.env
 
 module purge
 module load 2022
@@ -20,6 +26,8 @@ module load CUDA/11.8.0
 
 source activate .env/
 
+
 export PYTHONPATH=${PROJECT_DIR}:$PYTHONPATH
 
-python examples/generate_full_act_scales.py "$@"
+
+python eval_ALMA_mixed_precision.py "$@"

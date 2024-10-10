@@ -149,6 +149,8 @@ def main():
     print_model_size(model)
 
     model.eval()
+    if args.quant_type is not None:
+        model = torch.compile(model)
     tokenizer = LlamaTokenizer.from_pretrained(args.tokenizer)
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -204,14 +206,25 @@ def main():
 
         torch.cuda.synchronize()
         with torch.no_grad():
-            start.record()
-            generated_ids = model.generate(
-                input_ids=inputs.input_ids,
-                attention_mask=inputs.attention_mask,
-                num_beams=args.beam, # beam size
-                max_new_tokens=args.gen_max_tokens
-            )
-            end.record()
+            if args.quant_type is not None:
+                with torch.amp.autocast(device_type='cuda'):
+                    start.record()
+                    generated_ids = model.generate(
+                        input_ids=inputs.input_ids,
+                        attention_mask=inputs.attention_mask,
+                        num_beams=args.beam, # beam size
+                        max_new_tokens=args.gen_max_tokens
+                    )
+                    end.record()
+            else:
+                start.record()
+                generated_ids = model.generate(
+                    input_ids=inputs.input_ids,
+                    attention_mask=inputs.attention_mask,
+                    num_beams=args.beam, # beam size
+                    max_new_tokens=args.gen_max_tokens
+                )
+                end.record()
 
         torch.cuda.synchronize()
         latency_per_batch.append(start.elapsed_time(end))    

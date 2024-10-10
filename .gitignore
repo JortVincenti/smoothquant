@@ -7,6 +7,7 @@ slurm_log/
 .DS_Store
 activation_models/
 ALMA-7B
+DSnoT
 .vscode/
 *.pt
 # !full_scale_activation_models/ALMA-7B/
