@@ -1,4 +1,5 @@
-# SmoothQuant \& Q-LoRA: Model Compression for Machine Translation in Large Language Models
+# [**SmoothQuant**](https://arxiv.org/abs/2211.10438) \& [**Q-LoRA**](https://arxiv.org/abs/2305.14314): Model Compression for Machine Translation in Large Language Models
+Note that we build upon the [**SmoothQuant**](https://github.com/mit-han-lab/smoothquant) and utilize the evaluation scripts from [**ALMA**](https://github.com/fe1ixxu/ALMA) repo
 
 ## Findings
 
@@ -20,8 +21,6 @@ sbatch install_env.job
 ```bash
 source install_lfs.sh
 ```
-
-
 ### Download ALMA-7B weights
 ```bash
 sbatch download_alma_weights.job
