@@ -28,24 +28,24 @@ sbatch download_alma_weights.job
 ```
 
 ## Running SmoothQuant
-
-### Getting the Activation Scales
+1)
+### First get the Activation Scales
 ```bash
 source launch_full_act_scales_smoothQuant.sh
 ```
-
+2)
 ### Running SmoothQuant Experiments with Q-LoRA like quantization for ALMA-7B
 ```bash
 source launch_eval_smoothquant_all_lang_pairs.sh 
 
 ```
 
-### Running Q-LoRA like quantization for ALMA-7B
+## Running Q-LoRA like quantization for ALMA-7B
 ```bash
 source launch_eval_ALMA_LLM_int8_all_lang_pairs.sh
 ```
 
-### Running baseline ALMA-7B
+## Running baseline ALMA-7B
 ```bash
 source launch_eval_plain_ALMA_all_lang_pairs.sh
 ```
