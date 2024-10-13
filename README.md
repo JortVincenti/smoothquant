@@ -1,4 +1,4 @@
-# Model Compression for Machine Translation in Large Language Models
+# SmoothQuant \& Q-LoRA: Model Compression for Machine Translation in Large Language Models
 
 ## Findings
 
