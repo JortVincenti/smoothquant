@@ -1,5 +1,5 @@
 # [**SmoothQuant**](https://arxiv.org/abs/2211.10438) \& [**Q-LoRA**](https://arxiv.org/abs/2305.14314): Model Compression for Machine Translation in Large Language Models
-Note that we build upon the [**SmoothQuant**](https://github.com/mit-han-lab/smoothquant) and utilize the evaluation scripts from [**ALMA**](https://github.com/fe1ixxu/ALMA) repo
+Note that we build upon the [**SmoothQuant**](https://github.com/mit-han-lab/smoothquant) and utilize the evaluation scripts from [**ALMA**](https://github.com/fe1ixxu/ALMA) repo.
 
 ## Findings
 
