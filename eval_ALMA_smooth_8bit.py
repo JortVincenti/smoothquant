@@ -13,6 +13,9 @@ from smoothquant.smooth import smooth_lm
 from smoothquant.fake_quant import quantize_llama_like
 from comet import download_model, load_from_checkpoint
 
+import wandb 
+
+wandb.login(key="435c2b1443c62b327fa3f60a84c9229e446e463e")
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -82,7 +85,9 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    initial_vram = torch.cuda.memory_allocated()
+    wandb.init(project=f"ALMA-7B-bz{args.batch_size-1}-sq_len-{args.gen_max_tokens}", name=f"-{args.src}-{args.tgt}-{args.quant_type if args.quant_type is not None else 'None'}")
+
+    # initial_vram = torch.cuda.memory_allocated()
     # set data dtype
     dtype_map = {'bfloat16': torch.bfloat16, 'float16': torch.float16, 'float32': torch.float32}
     dtype = dtype_map.get(args.dtype, torch.float)
@@ -183,7 +188,7 @@ def main():
     total_batches = (len(lines) + args.batch_size - 1) // args.batch_size  # calculate the number of batches
     # Initialize empty lists to store the generated translations and targets
     generated_translations = []
-    total_vram_per_batch = []
+    # total_vram_per_batch = []
     latency_per_batch = []
 
     start = torch.cuda.Event(enable_timing=True)
@@ -214,11 +219,13 @@ def main():
             end.record()
 
         torch.cuda.synchronize()
-        latency_per_batch.append(start.elapsed_time(end))    
-        final_vram = torch.cuda.memory_allocated()
+        latency = start.elapsed_time(end)
+        wandb.log({"latency": latency})
+        latency_per_batch.append(latency)    
+        # final_vram = torch.cuda.memory_allocated()
         
-        model_memory_per_batch = ((final_vram - initial_vram) // (1024 ** 2))
-        total_vram_per_batch.append(model_memory_per_batch)
+        # model_memory_per_batch = ((final_vram - initial_vram) // (1024 ** 2))
+        # total_vram_per_batch.append(model_memory_per_batch)
 
         outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
@@ -235,13 +242,13 @@ def main():
             )
             increment += 1
 
-    print("-----------------------------------------------------------------")
-    print_model_size(model)
+    # print("-----------------------------------------------------------------")
+    # print_model_size(model)
     
-    model_average_vram = sum(total_vram_per_batch) / len(total_vram_per_batch)
-    print(f"Average VRAM usage: {model_average_vram} MB with model")
+    # model_average_vram = sum(total_vram_per_batch) / len(total_vram_per_batch)
+    # print(f"Average VRAM usage: {model_average_vram} MB with model")
 
-    print("-----------------------------------------------------------------")
+    # print("-----------------------------------------------------------------")
     
     temp_times = np.array(latency_per_batch)
     mean_time = temp_times[abs(temp_times - np.mean(temp_times)) < np.std(temp_times)].mean()
@@ -284,7 +291,8 @@ def main():
     
 
     print("*"*100)
-
+    wandb.log({"BLEU": bleu.score, "COMET": average_comet_score})
+    wandb.finish()
 
 if __name__ == "__main__":
     main()

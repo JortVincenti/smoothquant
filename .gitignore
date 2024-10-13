@@ -10,6 +10,7 @@ ALMA-7B
 DSnoT
 .vscode/
 *.pt
+wandb/
 # !full_scale_activation_models/ALMA-7B/
 
 # Byte-compiled / optimized / DLL files
